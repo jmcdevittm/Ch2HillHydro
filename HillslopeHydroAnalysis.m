@@ -5,8 +5,9 @@ clearvars -except CalhounData
 close all
 
 load AllRunoffPrecip.mat %Data pulled from PrecipAndQAnalysis.m
+% load AllWellData.mat %Output of cell below
 
-%% Create Timetable Array with T1 well data
+%% Create Timetable Array with T1 well data (this code works but is commented out since output is load as .mat above
 %Find start and stop dates for inclusive time range to fit all 8 wells
 for i = 1:8
     startDates(i) = CalhounData(i).data.datetime(1); %#ok<*SAGROW>
@@ -40,11 +41,40 @@ for i = 1:8
     
     %Find intersecting dates between temp variable and T1
     [tempOverlap,iOverlap,~] = intersect(T1.Time,tempWellData.datetime);
-    
-    length(tempOverlap) == height(tempWellData)
-    
+        
     %Write temp variable data into overlapping indices in T1
     T1.(T1.Properties.VariableNames{i})(iOverlap) = tempWellData.level;
+    
+    %Find data gaps less than 1 hour and apply a linear interp
+    iNotNaN = find(~isnan(T1.(T1.Properties.VariableNames{i}))); %Extract data that is not NaN
+    notNaNDates = T1.Time(iNotNaN);
+    
+    diffDates = diff(notNaNDates); %Find interval between non-NaN data
+    
+    iStartGaps = []; iOrigStartGaps = []; iOrigEndGaps = []; iGaps = []; %#ok<NASGU>
+    iStartGaps = find((diffDates > hours(1))); %Find starting index of gaps > 1 hr, pad with 0 so same length as iNotNaN
+    iOrigStartGaps = iNotNaN(iStartGaps)+1; %Then convert to indices in original data for start of gap
+    iOrigEndGaps = iNotNaN(iStartGaps+1)-1; %Get end of gap by incrementing up by one index
+    iGaps = [iOrigStartGaps iOrigEndGaps]; %Concatenate
+    
+%     for j = 1:size(iGaps,1) %Check to make sure gaps are all NaN
+%         sum(~isnan(T1.(T1.Properties.VariableNames{i})(iOrigStartGaps(j):iOrigEndGaps(j))))
+%     end
+    
+    T1.(T1.Properties.VariableNames{i})(iNotNaN(1):iNotNaN(end)) = ... %Use fillmissing to linear interp within data range
+        fillmissing(T1.(T1.Properties.VariableNames{i})(iNotNaN(1):iNotNaN(end)),'linear');
+    
+    for j = 1:size(iGaps,1) %Overwrite gaps with NaN
+        T1.(T1.Properties.VariableNames{i})(iGaps(j,1):iGaps(j,2)) = NaN;
+    end
+      
 end
 
+for i = 1:8
+    figure
+    plot(T1.Time,T1.(T1.Properties.VariableNames{i}))
+end
+
+%Save as .mat file to load later
+% save('AllWellData.mat','T1');
 %% Prelim figs of WT depth and Q
