@@ -1,9 +1,9 @@
 %% Figures for Ch2, based on HillslopeHydroAnalysis.m
-%Clear figs and open data
+%Clear figs/variables and load data
+clearvars -except CalhounData
 close all
 
-load AllRunoffPrecip.mat %Data pulled from PrecipAndQAnalysis.m
-load AllWellData.mat %Output of HillslopeHydroAnalysis.m
+load HillslopeHydroData.mat %Data from HillslopeHydroDataPrep.m
 
 %General figure properties
 myFontsize = 18;
@@ -28,7 +28,7 @@ for i = 1:8 %8 wells in T1
     title(T1.Properties.VariableNames{i},'FontSize',myFontsize)
     cbha = colorbar('Direction','reverse');
     cbha.TickLabels = cellstr(datestr(cbha.Ticks,'mmddyy'));
-    saveas(a,sprintf('%s',T1.Properties.VariableNames{i}),'epsc')
+    saveas(a,sprintf('T1%s',T1.Properties.VariableNames{i}),'epsc')
     
     %Semilog axes
     figure
@@ -41,7 +41,7 @@ for i = 1:8 %8 wells in T1
     title(T1.Properties.VariableNames{i},'FontSize',myFontsize)
     cbhb = colorbar('Direction','reverse');
     cbhb.TickLabels = cellstr(datestr(cbhb.Ticks,'mmddyy'));
-    saveas(b,sprintf('%s_LOG',T1.Properties.VariableNames{i}),'epsc')
+    saveas(b,sprintf('T1%s_LOG',T1.Properties.VariableNames{i}),'epsc')
     close all
 end
 
@@ -81,12 +81,69 @@ for i = 1:2:7
         T1.Time(iWY2016EX),T1.(T1.Properties.VariableNames{i+1})(iWY2016EX),'r.')    %Deep well
     set(gca,'FontSize',myFontsize)
     ylabel('Depth to WT (mm)','FontSize',myFontsize)
-    title(sprintf('Well Nest %i',(i+1)/2),'FontSize',myFontsize)
+    title(sprintf('T1 Well Nest %i',(i+1)/2),'FontSize',myFontsize)
     
-    saveas(a,sprintf('TSWellNest%i',(i+1)/2),'epsc')
+    saveas(a,sprintf('TST1WellNest%i',(i+1)/2),'epsc')
+%     close all
+end
+
+%% Well time series, T2
+
+for i = 1:2:5
+    
+    a = figure;
+    plot(T2.Time(iWY2016EX),T2.(T2.Properties.VariableNames{i})(iWY2016EX),'b.',... %Shallow well
+        T2.Time(iWY2016EX),T2.(T2.Properties.VariableNames{i+1})(iWY2016EX),'r.')    %Deep well
+    set(gca,'FontSize',myFontsize)
+    ylabel('Depth to WT (mm)','FontSize',myFontsize)
+    title(sprintf('T2 Well Nest %i',(i+1)/2),'FontSize',myFontsize)
+    
+    saveas(a,sprintf('TST2WellNest%i',(i+1)/2),'epsc')
 %     close all
 end
         
+%% WT depth and Q for T2
+
+for i = 1:6 %6 wells in T2
+    %Synchronize runoff with well
+    tempTable = synchronize(T2(:,i),allRunoffPrecip(:,2),'intersection','fillwithmissing');
     
+    %Plot well depth v runoff
+    %Linear axes
+    figure
+    a = scatter(tempTable.runoff(iWY2016EX),tempTable.(T2.Properties.VariableNames{i})(iWY2016EX),...
+        25,datenum(tempTable.Time(iWY2016EX)));
+    set(gca,'FontSize',myFontsize)
+    ylabel('Depth to WT (mm)','FontSize',myFontsize)
+    xlabel('Runoff (mm/hr)','FontSize',myFontsize)
+    title(T2.Properties.VariableNames{i},'FontSize',myFontsize)
+    cbha = colorbar('Direction','reverse');
+    cbha.TickLabels = cellstr(datestr(cbha.Ticks,'mmddyy'));
+    saveas(a,sprintf('T2%s',T2.Properties.VariableNames{i}),'epsc')
     
-    
+    %Semilog axes
+    figure
+    b = scatter(tempTable.runoff(iWY2016EX),tempTable.(T2.Properties.VariableNames{i})(iWY2016EX),...
+        25,datenum(tempTable.Time(iWY2016EX)));
+    set(gca,'FontSize',myFontsize,'XScale','log')
+    xlim([0.1 100])
+    ylabel('Depth to WT (mm)','FontSize',myFontsize)
+    xlabel('Runoff (mm/hr)','FontSize',myFontsize)
+    title(T2.Properties.VariableNames{i},'FontSize',myFontsize)
+    cbhb = colorbar('Direction','reverse');
+    cbhb.TickLabels = cellstr(datestr(cbhb.Ticks,'mmddyy'));
+    saveas(b,sprintf('T2%s_LOG',T2.Properties.VariableNames{i}),'epsc')
+%     close all
+end
+
+%% Deep well TS
+
+a = figure;
+plot(DW5.Time(iWY2016EX),DW5.level(iWY2016EX),'b.')
+set(gca,'FontSize',myFontsize)
+ylim([-6000 0]);
+ylabel('Depth to WT (mm)','FontSize',myFontsize)
+title('Deep Well','FontSize',myFontsize)
+
+saveas(a,'DeepWell','tiff')
+%     close all
