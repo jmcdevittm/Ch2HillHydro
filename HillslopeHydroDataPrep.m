@@ -162,7 +162,7 @@ DW.Properties.VariableUnits = {'mm'};
 %interpolate onto regular 5 min time series
 DW5 = retime(DW,'regular','linear','TimeStep',minutes(5));
 
-%Large data gaps (Determined manually from plot):
+%Large data gaps (Determined manually):
 %13-Apr-2016 21:20:00 -> 30-Apr-2016 19:20:00
 %05-Aug-2016 05:00:00 -> 10-Aug-2016 13:00:00
 %05-Oct-2016 02:20:00 -> 18-Oct-2016 13:20:00

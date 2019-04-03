@@ -4,10 +4,6 @@
 clearvars -except CalhounData
 close all
 
-% load PrecipAndQData.mat %Data pulled from PrecipAndQAnalysis.m
-% load AllRunoffPrecip.mat %Data pulled from PrecipAndQAnalysis.m
-% load AllWellData.mat %Output of HillslopeHydroAnalysis.m
-
 %% Change in h vs Runoff
 
 % %Create hourly data for well depth, runoff, and precip

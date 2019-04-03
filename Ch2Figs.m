@@ -8,7 +8,7 @@ load HillslopeHydroData.mat %Data from HillslopeHydroDataPrep.m
 %General figure properties
 myFontsize = 18;
 
-%Create index for WY2016 but extended into the previous summer
+%Create index for WY2016 extended into the previous summer
 iWY2016EX = timerange('01-Jul-2015 00:00:00','01-Oct-2016 00:00:00');
 
 %% WT depth and Q for T1; Full depth range; Linear and semilog axes
