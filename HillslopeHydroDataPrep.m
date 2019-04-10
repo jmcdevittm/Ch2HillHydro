@@ -182,16 +182,65 @@ DW5 = synchronize(DW5,allRunoffPrecip,'union','fillwithMissing');
 %Append DW5 onto HH data
 save HillslopeHydroData.mat DW5 -append
 
-%% Save all data except CalhounData as 
-% save('AllWellData.mat','T1','T2','DW5');
+%% Create a 5 min relS timetable for weighting well levels
+allData5min = retime(allDataDaily,'regular','linear','TimeStep',minutes(5));
+relSi = strcmp(allData5min.Properties.VariableNames,'relS'); %Find column index for relS variable
+relS5min = allData5min(:,relSi);
 
+%Append relS5Min to HH data
+save HillslopeHydroData.mat relS5min -append
 
-%% Change in h vs Runoff
+%% Create 3 timetables for each SM pit
+depthNames = {'shal','mid','deep'}; %Create depth names
 
-% %Create hourly data for well depth, runoff, and precip
-% T1hourly = T1;
-% T1hourly.runoff = T1hourly.runoff/12; %Convert from mm/hr to just depth of water over 5 min interval
-% T1hourly.discharge = T1hourly.discharge*300; %Convert from L/s to just volume of water over 5 min interval
-% T1hourly{:,1:8} = T1hourly{:,1:8}./12; %Divide well levels by 12 so that sum over hourly will = average depth 
-% T1hourly = retime(T1hourly,'hourly',@sum);
+%CSP1
+soilWaterP1 = table2timetable(CalhounData(15).data(:,2:4),'RowTimes',...
+    datetime(CalhounData(15).data.datetime,'ConvertFrom','datenum'));
+soilWaterP1.Properties.VariableNames = depthNames;
+soilWaterP1 = retime(soilWaterP1,'regular','linear','TimeStep',minutes(5));
 
+%CSP2
+soilWaterP2 = table2timetable(CalhounData(16).data(:,2:4),'RowTimes',...
+    datetime(CalhounData(16).data.datetime,'ConvertFrom','datenum'));
+soilWaterP2.Properties.VariableNames = depthNames;
+soilWaterP2 = retime(soilWaterP2,'regular','linear','TimeStep',minutes(5));
+
+%CSP3
+soilWaterP3 = table2timetable(CalhounData(17).data(:,2:4),'RowTimes',...
+    datetime(CalhounData(17).data.datetime,'ConvertFrom','datenum'));
+soilWaterP3.Properties.VariableNames = depthNames;
+soilWaterP3 = retime(soilWaterP3,'regular','linear','TimeStep',minutes(5));
+
+%Append soil moisture data to HH data
+save HillslopeHydroData.mat soilWaterP1 soilWaterP2 soilWaterP3 -append
+
+%% Calculate Thornwaithe PET in monthly and daily time steps
+load meanMonthlyTemp
+load dayLength
+
+daylength = daylength * 24;
+monthDays = [30 31 30 31 31 28 31 30 31 30 31 31]';
+
+%TW PET estimate 
+WY2015HeatIndex = sum((meanMonthTemp(1:12)./5).^1.514);
+WY2015alpha = 6.75e-7*WY2015HeatIndex^3 - 7.71e-5*WY2015HeatIndex^2 + 1.792e-2*WY2015HeatIndex + 0.49239;
+WY2015PET = 16.*(daylength./12).*(monthDays./30).*(10.*meanMonthTemp(1:12)./WY2015HeatIndex).^WY2015alpha; %mm/month
+WY2015PET = WY2015PET./monthDays; %mm/day
+
+WY2016HeatIndex = sum((meanMonthTemp(13:24)./5).^1.514);
+WY2016alpha = 6.75e-7*WY2016HeatIndex^3 - 7.71e-5*WY2016HeatIndex^2 + 1.792e-2*WY2016HeatIndex + 0.49239;
+WY2016PET = 16.*(daylength./12).*(monthDays./30).*(10.*meanMonthTemp(13:24)./WY2016HeatIndex).^WY2016alpha; %mm/month
+WY2016PET = WY2016PET./monthDays; %mm/day
+
+WY2017HeatIndex = sum((meanMonthTemp(25:36)./5).^1.514);
+WY2017alpha = 6.75e-7*WY2017HeatIndex^3 - 7.71e-5*WY2017HeatIndex^2 + 1.792e-2*WY2017HeatIndex + 0.49239;
+WY2017PET = 16.*(daylength./12).*(monthDays./30).*(10.*meanMonthTemp(25:36)./WY2017HeatIndex).^WY2017alpha; %mm/month
+WY2017PET = WY2017PET./monthDays; %mm/day
+
+PET = [WY2015PET; WY2016PET; WY2017PET; 0]; %Add zero to macth w/ Oct 17 later when interpolating to daily
+months = (datetime(2014,10,1):calmonths(1):datetime(2017,10,1))'; %Create monthly time series
+allPETMonthly = timetable(months,PET);
+allPETDaily = retime(allPETMonthly,'daily','previous');
+allPETDaily(end,:) = []; %Remove row for Oct 1 2017
+
+save HillslopeHydroData.mat allPETMonthly allPETDaily -append
